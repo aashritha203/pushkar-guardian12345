@@ -83,6 +83,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Real-time AI crowd density monitoring across Godavari Pushkaralu bathing ghats." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Godavari Pushkaralu 2027 — AI Crowd Monitoring" },
+      { name: "twitter:description", content: "Real-time AI crowd density monitoring across Godavari Pushkaralu bathing ghats." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bd9b0070-f654-45ab-853f-88aa216adfe5/id-preview-3cfa3f9a--281a2bab-ef17-45e1-adc8-0474d5124d14.lovable.app-1781846652739.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bd9b0070-f654-45ab-853f-88aa216adfe5/id-preview-3cfa3f9a--281a2bab-ef17-45e1-adc8-0474d5124d14.lovable.app-1781846652739.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
