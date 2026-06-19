@@ -5,9 +5,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 
 export function Header({ role }: { role: "user" | "operator" }) {
   const meta = useLiveMeta();
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null);
   const navigate = useNavigate();
-  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
+  useEffect(() => { setNow(new Date()); const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/70 backdrop-blur-xl">
