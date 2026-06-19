@@ -1,34 +1,17 @@
 import { useSyncExternalStore } from "react";
 import { liveService } from "@/lib/live-service";
 
+const subscribe = (cb: () => void) => liveService.subscribe(cb);
+
 export function useLiveGhats() {
-  return useSyncExternalStore(
-    (cb) => liveService.subscribe(cb),
-    () => liveService.list(),
-    () => liveService.list(),
-  );
+  return useSyncExternalStore(subscribe, () => liveService.ghatsSnap, () => liveService.ghatsSnap);
 }
-
 export function useLiveAlerts() {
-  return useSyncExternalStore(
-    (cb) => liveService.subscribe(cb),
-    () => liveService.alerts,
-    () => liveService.alerts,
-  );
+  return useSyncExternalStore(subscribe, () => liveService.alertsSnap, () => liveService.alertsSnap);
 }
-
 export function useLiveMeta() {
-  return useSyncExternalStore(
-    (cb) => liveService.subscribe(cb),
-    () => ({ status: liveService.wsStatus, latency: liveService.getLatency() }),
-    () => ({ status: liveService.wsStatus, latency: liveService.getLatency() }),
-  );
+  return useSyncExternalStore(subscribe, () => liveService.metaSnap, () => liveService.metaSnap);
 }
-
 export function useLiveHistory() {
-  return useSyncExternalStore(
-    (cb) => liveService.subscribe(cb),
-    () => liveService.history,
-    () => liveService.history,
-  );
+  return useSyncExternalStore(subscribe, () => liveService.historySnap, () => liveService.historySnap);
 }
