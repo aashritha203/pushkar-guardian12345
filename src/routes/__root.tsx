@@ -77,20 +77,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Godavari Pushkaralu 2027 — AI Crowd Monitoring" },
+      { name: "description", content: "Real-time AI crowd density monitoring across Godavari Pushkaralu bathing ghats." },
+      { property: "og:title", content: "Godavari Pushkaralu 2027 — AI Crowd Monitoring" },
+      { property: "og:description", content: "Real-time AI crowd density monitoring across Godavari Pushkaralu bathing ghats." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" },
     ],
   }),
   shellComponent: RootShell,
@@ -115,11 +114,14 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-
+  useEffect(() => {
+    // Start live simulation after hydration to avoid SSR/client snapshot mismatches.
+    import("../lib/live-service").then(({ liveService }) => liveService.start());
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>
   );
 }
+
