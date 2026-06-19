@@ -27,7 +27,7 @@ export function Header({ role }: { role: "user" | "operator" }) {
           <Pill icon={Activity} tone="blue" label="Latency" value={`${meta.latency}ms`} />
           <Pill icon={ShieldCheck} tone="green" label="AI Service" value="online" />
           <div className="hidden rounded-md border border-border bg-card/60 px-3 py-1.5 tabular-nums sm:block">
-            {now.toLocaleDateString()} · {now.toLocaleTimeString()}
+            {now ? `${now.toLocaleDateString()} · ${now.toLocaleTimeString()}` : "—"}
           </div>
           <nav className="flex items-center gap-1">
             <Link to="/dashboard" className="rounded-md px-2.5 py-1.5 text-xs hover:bg-accent" activeProps={{ className: "bg-accent text-foreground" }}>User</Link>
