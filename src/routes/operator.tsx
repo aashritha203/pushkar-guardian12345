@@ -7,6 +7,7 @@ import { liveService } from "@/lib/live-service";
 import { Camera, Plus, Trash2, Video } from "lucide-react";
 
 export const Route = createFileRoute("/operator")({
+  ssr: false,
   component: OperatorPage,
 });
 
