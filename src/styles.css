@@ -1,0 +1,105 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-safe: var(--safe);
+  --color-moderate: var(--moderate);
+  --color-critical: var(--critical);
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Government Command Center — dark theme */
+  --background: oklch(0.18 0.03 254);          /* #0F172A slate-900 */
+  --foreground: oklch(0.98 0.005 240);
+  --card: oklch(0.24 0.035 254);               /* #1E293B slate-800 */
+  --card-foreground: oklch(0.98 0.005 240);
+  --popover: oklch(0.24 0.035 254);
+  --popover-foreground: oklch(0.98 0.005 240);
+  --primary: oklch(0.65 0.19 257);             /* #3B82F6 */
+  --primary-foreground: oklch(0.98 0.005 240);
+  --secondary: oklch(0.30 0.035 254);
+  --secondary-foreground: oklch(0.98 0.005 240);
+  --muted: oklch(0.28 0.03 254);
+  --muted-foreground: oklch(0.72 0.02 250);
+  --accent: oklch(0.32 0.05 257);
+  --accent-foreground: oklch(0.98 0.005 240);
+  --destructive: oklch(0.65 0.24 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.32 0.03 254);
+  --input: oklch(0.28 0.03 254);
+  --ring: oklch(0.65 0.19 257);
+  --safe: oklch(0.72 0.18 152);                /* #22C55E */
+  --moderate: oklch(0.78 0.16 75);             /* #F59E0B */
+  --critical: oklch(0.65 0.24 27);             /* #EF4444 */
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body, #root { height: 100%; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 20% -10%, oklch(0.32 0.08 257 / 0.35), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, oklch(0.32 0.08 200 / 0.25), transparent 60%),
+      var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
+}
+
+/* Leaflet pulsing circles */
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 currentColor; opacity: 0.7; }
+  100% { box-shadow: 0 0 0 18px transparent; opacity: 0; }
+}
+.leaflet-container { background: #0b1220 !important; border-radius: var(--radius-lg); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--color-card) !important;
+  color: var(--color-card-foreground) !important;
+  border: 1px solid var(--color-border);
+}
+.leaflet-control-attribution { background: rgba(15,23,42,0.7) !important; color: #94a3b8 !important; }
+.leaflet-control-attribution a { color: #93c5fd !important; }
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(148,163,184,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148,163,184,0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.glow-blue   { box-shadow: 0 0 0 1px oklch(0.65 0.19 257 / 0.4), 0 0 40px -8px oklch(0.65 0.19 257 / 0.5); }
+.glow-green  { box-shadow: 0 0 0 1px var(--safe) / 0.4, 0 0 40px -8px var(--safe); }
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
