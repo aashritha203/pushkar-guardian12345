@@ -19,9 +19,11 @@ from firebase_admin import credentials, db, auth as admin_auth
 import smtplib
 from email.mime.text import MIMEText
 import random
+import torch
+torch.set_num_threads(1)
 
 SMTP_EMAIL = "aashritha203@gmail.com"
-SMTP_APP_PASSWORD = "dgmo antj asrp uqbm".replace(" ", "")
+SMTP_APP_PASSWORD = os.environ.get("SMTP_APP_PASSWORD", "")
 
 _otp_store = {}
 OTP_EXPIRY_SECONDS = 300  # 5 minutes
