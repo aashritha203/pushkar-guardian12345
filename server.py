@@ -11,8 +11,7 @@ import cv2
 import numpy as np
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from ultralytics import YOLO
-
+import onnxruntime as ort
 import firebase_admin
 from firebase_admin import credentials, db, auth as admin_auth
 
@@ -113,23 +112,31 @@ def _send_otp_email(to_email):
 
 SNAPSHOT_INTERVAL = 15
 
-print("[server] Loading YOLO model...")
-try:
-    model = YOLO("yolov8x.pt")
-    print("[server] YOLOv8x loaded.")
-except Exception:
-    print("[server] Falling back to yolov8n.pt...")
-    try:
-        model = YOLO("yolov8n.pt")
-        print("[server] yolov8n loaded.")
-    except Exception as exc:
-        print(f"[server] FATAL: No YOLO model found — {exc}")
-        sys.exit(1)
+ONNX_INPUT_SIZE = 640
 
+print("[server] Loading ONNX YOLO model...")
+try:
+    ort_session = ort.InferenceSession("yolov8n.onnx", providers=["CPUExecutionProvider"])
+    print("[server] yolov8n.onnx loaded via onnxruntime.")
+except Exception as exc:
+    print(f"[server] FATAL: Could not load ONNX model — {exc}")
+    sys.exit(1)
+
+def _preprocess_for_onnx(frame, size=ONNX_INPUT_SIZE):
+    h, w = frame.shape[:2]
+    scale = size / max(h, w)
+    nh, nw = int(h * scale), int(w * scale)
+    resized = cv2.resize(frame, (nw, nh))
+    canvas = np.full((size, size, 3), 114, dtype=np.uint8)
+    canvas[0:nh, 0:nw] = resized
+    img = canvas[:, :, ::-1].transpose(2, 0, 1)
+    img = np.ascontiguousarray(img, dtype=np.float32) / 255.0
+    img = np.expand_dims(img, axis=0)
+    return img, scale
 
 def _grab_live_frame(youtube_url: str, seek_seconds: int):
     """
-    Grabs ONE frame from a YouTube stream at a given seek position.
+    Grabs ONE frame a YouTube stream at a given seek position.
     """
     cap = None
     try:
@@ -170,7 +177,7 @@ def _grab_live_frame(youtube_url: str, seek_seconds: int):
                     "-"
                 ]
             else:
-                # Get duration from yt-dlp info if available, else assume large
+                # Get duration yt-dlp info if available, else assume large
                 duration_s = info.get("duration", 0)
                 actual_seek = seek_seconds
                 if duration_s > 0:
@@ -230,34 +237,29 @@ def _grab_live_frame(youtube_url: str, seek_seconds: int):
 
 def _run_inference(frame):
     h, w = frame.shape[:2]
-    
-    # Run inference directly on the full clear frame
-    results = model.predict(
-        frame,
-        conf=0.40,      # raise from 0.25 to 0.40 — only count high-confidence detections
-        iou=0.50,       # stricter NMS
-        classes=[0],    # person only
-        verbose=False,
-        imgsz=1280,
-        augment=False,
-    )
+
+    img_input, scale = _preprocess_for_onnx(frame)
+    input_name = ort_session.get_inputs()[0].name
+    outputs = ort_session.run(None, {input_name: img_input})[0]
+
+    preds = np.squeeze(outputs).T
+    boxes_cxcywh = preds[:, :4]
+    class_scores = preds[:, 4:]
+    person_scores = class_scores[:, 0]
+
+    conf_mask = person_scores > 0.40
+    boxes_cxcywh = boxes_cxcywh[conf_mask]
+    person_scores = person_scores[conf_mask]
 
     all_boxes = []
     all_scores = []
-
-    for result in results:
-        if result.boxes is None:
-            continue
-        for box in result.boxes:
-            x1, y1, x2, y2 = box.xyxy[0].tolist()
-            score = float(box.conf[0])
-            
-            bw = int(x2 - x1)
-            bh = int(y2 - y1)
-            
-            all_boxes.append([int(x1), int(y1), bw, bh])
-            all_scores.append(score)
-
+    for (cx, cy, bw, bh), score in zip(boxes_cxcywh, person_scores):
+        x1 = (cx - bw / 2) / scale
+        y1 = (cy - bh / 2) / scale
+        bw_orig = bw / scale
+        bh_orig = bh / scale
+        all_boxes.append([int(x1), int(y1), int(bw_orig), int(bh_orig)])
+        all_scores.append(float(score))
     # Global NMS
     final_indices = []
     if len(all_boxes) > 0:
@@ -326,7 +328,7 @@ def _snapshot_loop(raw_url: str, stop_evt: threading.Event, ghat_id: str):
     snapshot_index = 0
     base_seek = 30
     
-    # Try to fetch point data from Firebase to get ghatName and cameraId
+    # Try to fetch point data Firebase to get ghatName and cameraId
     ghatName = "Unknown Ghat"
     cameraId = ghat_id
     try:
@@ -335,7 +337,7 @@ def _snapshot_loop(raw_url: str, stop_evt: threading.Event, ghat_id: str):
             ghatName = ref_data.get('ghatName', ghatName)
             cameraId = ref_data.get('cameraId', cameraId)
     except Exception as e:
-        print(f"[{ghat_id}] Warning: Could not fetch ghat data from Firebase: {e}")
+        print(f"[{ghat_id}] Warning: Could not fetch ghat data Firebase: {e}")
 
     while not stop_evt.is_set():
         tick_start = time.time()
