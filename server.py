@@ -12,6 +12,7 @@ import numpy as np
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import onnxruntime as ort
+
 import firebase_admin
 from firebase_admin import credentials, db, auth as admin_auth
 
@@ -134,9 +135,10 @@ def _preprocess_for_onnx(frame, size=ONNX_INPUT_SIZE):
     img = np.expand_dims(img, axis=0)
     return img, scale
 
+
 def _grab_live_frame(youtube_url: str, seek_seconds: int):
     """
-    Grabs ONE frame a YouTube stream at a given seek position.
+    Grabs ONE frame from a YouTube stream at a given seek position.
     """
     cap = None
     try:
@@ -177,7 +179,7 @@ def _grab_live_frame(youtube_url: str, seek_seconds: int):
                     "-"
                 ]
             else:
-                # Get duration yt-dlp info if available, else assume large
+                # Get duration from yt-dlp info if available, else assume large
                 duration_s = info.get("duration", 0)
                 actual_seek = seek_seconds
                 if duration_s > 0:
@@ -247,7 +249,7 @@ def _run_inference(frame):
     class_scores = preds[:, 4:]
     person_scores = class_scores[:, 0]
 
-    conf_mask = person_scores > 0.40
+    conf_mask = person_scores > 0.10
     boxes_cxcywh = boxes_cxcywh[conf_mask]
     person_scores = person_scores[conf_mask]
 
@@ -260,10 +262,11 @@ def _run_inference(frame):
         bh_orig = bh / scale
         all_boxes.append([int(x1), int(y1), int(bw_orig), int(bh_orig)])
         all_scores.append(float(score))
+
     # Global NMS
     final_indices = []
     if len(all_boxes) > 0:
-        indices = cv2.dnn.NMSBoxes(all_boxes, all_scores, score_threshold=0.40, nms_threshold=0.50)
+        indices = cv2.dnn.NMSBoxes(all_boxes, all_scores, score_threshold=0.10, nms_threshold=0.45)
         
         if len(indices) > 0:
             indices = np.array(indices).flatten()
@@ -272,7 +275,7 @@ def _run_inference(frame):
             filtered_boxes = [all_boxes[idx] for idx in indices]
             filtered_scores = [all_scores[idx] for idx in indices]
             
-            indices2 = cv2.dnn.NMSBoxes(filtered_boxes, filtered_scores, score_threshold=0.40, nms_threshold=0.60)
+            indices2 = cv2.dnn.NMSBoxes(filtered_boxes, filtered_scores, score_threshold=0.10, nms_threshold=0.60)
             
             if len(indices2) > 0:
                 indices2 = np.array(indices2).flatten()
@@ -281,14 +284,11 @@ def _run_inference(frame):
     valid_boxes = []
     for i in final_indices:
         x, y, bw, bh = all_boxes[i]
-        # person must be roughly vertical (height > width)
-        if bh < bw * 0.7:  # too wide to be a person, skip
-            continue
         # person must be reasonable size (not tiny noise)
-        if bh < 15 or bw < 8:  # too small, skip
+        if bh < 5 or bw < 5:  # too small, skip
             continue
-        # confidence must be above 0.40
-        if all_scores[i] < 0.40:
+        # confidence must be above 0.10
+        if all_scores[i] < 0.10:
             continue
         valid_boxes.append(i)
         
@@ -328,7 +328,7 @@ def _snapshot_loop(raw_url: str, stop_evt: threading.Event, ghat_id: str):
     snapshot_index = 0
     base_seek = 30
     
-    # Try to fetch point data Firebase to get ghatName and cameraId
+    # Try to fetch point data from Firebase to get ghatName and cameraId
     ghatName = "Unknown Ghat"
     cameraId = ghat_id
     try:
@@ -337,13 +337,13 @@ def _snapshot_loop(raw_url: str, stop_evt: threading.Event, ghat_id: str):
             ghatName = ref_data.get('ghatName', ghatName)
             cameraId = ref_data.get('cameraId', cameraId)
     except Exception as e:
-        print(f"[{ghat_id}] Warning: Could not fetch ghat data Firebase: {e}")
+        print(f"[{ghat_id}] Warning: Could not fetch ghat data from Firebase: {e}")
 
     while not stop_evt.is_set():
         tick_start = time.time()
         snapshot_index += 1
         seek_pos = base_seek + (snapshot_index - 1) * SNAPSHOT_INTERVAL
-        print(f"\n[{ghat_id}] ── Snapshot #{snapshot_index} (seek={seek_pos}s) ──")
+        print(f"\n[{ghat_id}] -- Snapshot #{snapshot_index} (seek={seek_pos}s) --")
 
         count = 0
         status = "offline"
@@ -380,10 +380,10 @@ def _snapshot_loop(raw_url: str, stop_evt: threading.Event, ghat_id: str):
             # -------------------------
 
             status = "online"
-            print(f"[{ghat_id}] ✓ #{snapshot_index} | Persons: {count} | seek={seek_pos}s | Inference: {infer_ms}ms | Next in {SNAPSHOT_INTERVAL}s")
+            print(f"[{ghat_id}] OK #{snapshot_index} | Persons: {count} | seek={seek_pos}s | Inference: {infer_ms}ms | Next in {SNAPSHOT_INTERVAL}s")
 
         except Exception as exc:
-            print(f"[{ghat_id}] ✗ #{snapshot_index} Error: {exc}")
+            print(f"[{ghat_id}] FAIL #{snapshot_index} Error: {exc}")
             status = "offline"
             count = 0
             with _lock:
